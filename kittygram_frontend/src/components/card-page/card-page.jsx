@@ -1,7 +1,7 @@
 import React from "react";
 import { useHistory, useParams } from "react-router-dom";
 
-import { deleteCard, getCard } from "../../utils/api";
+import { deleteCard, getCard, likeCard, favoriteCard  } from "../../utils/api";
 import { UserContext } from "../../utils/context";
 
 import returnIcon from "../../images/left.svg";
@@ -16,7 +16,11 @@ import styles from "./card-page.module.css";
 
 export const CardPage = ({ data, setData, extraClass = "" }) => {
   const [achievements, setAchievements] = React.useState("");
+  const [likesCount, setLikesCount] = React.useState(0);
+  const [likedBy, setLikedBy] = React.useState([]);
+  const [liked, setLiked] = React.useState(false);
   const [user] = React.useContext(UserContext);
+  const [favorite, setFavorite] = React.useState(false);
 
   const history = useHistory();
   const params = useParams();
@@ -33,6 +37,10 @@ export const CardPage = ({ data, setData, extraClass = "" }) => {
             : (resString = item.achievement_name);
         });
         setAchievements(resString);
+        setLikesCount(res.likes_count);
+        setLikedBy(res.liked_by);
+        setLiked(res.liked_by?.some(l => l.username === user.username));
+        setFavorite(res.is_favorite);
       }
     });
   }, [params.id, setData]);
@@ -54,6 +62,30 @@ export const CardPage = ({ data, setData, extraClass = "" }) => {
       });
   };
 
+  const handleLike = () => {
+    likeCard(data.id).then((res) => {
+      if (res.detail === 'Лайк поставлен.') {
+        setLikesCount(likesCount + 1);
+        setLikedBy([...likedBy, { username: user.username }]);
+        setLiked(true);
+      } else {
+        setLikesCount(likesCount - 1);
+        setLikedBy(likedBy.filter(item => item.username !== user.username));
+        setLiked(false);
+      }
+    });
+  };
+
+  const handleFavorite = () => {
+    favoriteCard(data.id).then((res) => {
+      if (res.detail === 'Добавлено в избранное.') {
+        setFavorite(true);
+      } else {
+        setFavorite(false);
+      }
+    });
+  };
+
   const colorText =
     data.color === "black" ||
     data.color === "saddlebrown" ||
@@ -64,7 +96,14 @@ export const CardPage = ({ data, setData, extraClass = "" }) => {
 
   return (
     <article className={`${styles.content} ${extraClass}`}>
+      <button
+        onClick={handleFavorite}
+        className={favorite ? styles.favorite_btn : styles.favorite_btn_inactive}
+      >
+        {favorite ? '⭐ В избранном' : '📌 В избранное'}
+      </button>
       <div className={styles.container}>
+        
         <div className={styles.btns_box_mobile}>
           <ButtonSecondary
             extraClass={styles.mobile_btn}
@@ -134,6 +173,14 @@ export const CardPage = ({ data, setData, extraClass = "" }) => {
       <p className={`text text_type_h3 ${styles.achievements}`}>
         {achievements}
       </p>
+      <button onClick={handleLike} className={liked ? styles.like_btn : styles.like_btn_inactive}>
+        {liked ? '❤️' : '🤍'} {likesCount}
+      </button>
+      {likedBy && likedBy.length > 0 && (
+        <p className={`text text_type_medium-20 text_color_secondary ${styles.liked_by}`}>
+          ❤️ {likedBy.map(item => item.username).join(', ')}
+        </p>
+      )}
     </article>
   );
 };
