@@ -1,0 +1,31 @@
+services:
+  backend:
+    build: ./kittygram_favorite
+    volumes: 
+      - django_static:/app/static
+      - media:/app/media
+    env_file:
+      - ./kittygram_favorite/.env
+
+  frontend:
+    build: ./kittygram_frontend
+    volumes:
+      - frontend_build:/app/build
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - django_static:/app/static
+      - media:/app/media
+      - frontend_build:/usr/share/nginx/html
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  django_static:
+  media:
+  frontend_build:
